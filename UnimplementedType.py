@@ -38,7 +38,7 @@ class UnimplementedType:
                 dtype = [UnimplementedType(field, style=self.style)
                          .from_json(obj[0])] if len(obj) > 0 else [UnknownType()]
             self.nested_classes[field] = dtype
-        return [self] if is_list else self
+        return self
 
     @staticmethod
     def snaked_to_camelcase(s):
