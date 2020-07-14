@@ -31,7 +31,11 @@ Example usage is shown in `example/codegen_classes.py`. It uses an example paylo
 ]
 ```
 
-The response is serialized by the `UnimplementedType.unimplementedtype_from_json` method and model Python class code for the fields are returned by `UnimplementedType.codegen`. One may set the `include_nested_classes` parameter to `True` in `UnimplementedType.codegen` to generate custom classes for any nested custom objects. Additionally, one may set the `include_from_json_method` parameter to `True` in `UnimplementedType.codegen` to generate a `from_json` method for each class. The `from_json` method will instantiate and return an appropriate object given a JSON input. With both these flags set to true, the result of `UnimplementedType.codegen` in `example/codegen_classes.py` is the following (also stored in `examples/out.py`):
+The response is serialized by the `UnimplementedType.unimplementedtype_from_json` method and model Python class code for the fields are returned by `UnimplementedType.codegen`, which has two optional parameters:
+* `include_nested_classes`: when `True`, output will include class code generated for any nested custom objects in the JSON
+* `include_from_json_method`: when `True`, generates a `from_json` method for each class, which instantiates and returns an appropriate object given a JSON input
+
+With both these flags set to true, the result of `UnimplementedType.codegen` in `example/codegen_classes.py` is the following (also stored in `examples/out.py`):
 ```python
 class User:
 	def __init__(self, id=None, name=None, username=None, email=None, address=None, phone=None, website=None, company=None):
