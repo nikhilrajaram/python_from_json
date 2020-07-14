@@ -19,7 +19,7 @@ class UnimplementedType:
         self.implementation = ""
         self.style = style
 
-    def from_json(self, json):
+    def unimplementedtype_from_json(self, json):
         """
         Serialize JSON into UnimplementedType
         :param json: dict-like JSON object
@@ -33,10 +33,10 @@ class UnimplementedType:
             dtype = type(obj)
             if dtype is dict:
                 dtype = UnimplementedType(field, style=self.style)\
-                    .from_json(obj) if obj != {} else UnknownType()
+                    .unimplementedtype_from_json(obj) if obj != {} else UnknownType()
             if dtype is list:
                 dtype = [UnimplementedType(field, style=self.style)
-                         .from_json(obj[0])] if len(obj) > 0 else [UnknownType()]
+                         .unimplementedtype_from_json(obj[0])] if len(obj) > 0 else [UnknownType()]
             self.nested_classes[field] = dtype
         return self
 
