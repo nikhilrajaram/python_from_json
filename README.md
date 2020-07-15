@@ -514,4 +514,4 @@ class Type:
 
 ```
 
-One can now easily serialize responses from `https://jsonplaceholder.typicode.com/users`, as is seen in `examples/test_classes.py`, by calling the `examples.out.User.from_json` method.
+One can now easily serialize responses from `https://pokeapi.co/api/v2/pokemon/ditto`, as is seen in `examples/test_classes.py`, by calling the `examples.out.Ditto.from_json` method.
