@@ -1,4 +1,5 @@
 from UnknownType import UnknownType
+from error.NotSerializedError import NotSerializedError
 import re
 
 
@@ -28,6 +29,7 @@ class UnimplementedType:
         self.classname = classname
         self.implementation = ""
         self.style = style
+        self.is_serialized = False
 
     def serialize_json(self, json):
         """
@@ -198,6 +200,9 @@ class UnimplementedType:
         :param include_from_json_method: when True, will add from_json methods to generated code
         :return: implementation for custom class
         """
+        if not self.is_serialized:
+            raise NotSerializedError("No response JSON has been serialized")
+
         self.implementation = ""
 
         # populate list of fieldnames, datatypes, and default constructor parameters
