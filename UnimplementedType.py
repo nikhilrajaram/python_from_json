@@ -3,6 +3,9 @@ import re
 
 
 class UnimplementedType:
+    """
+    Object to represent an unimplemented custom class
+    """
     CLASS_HEADER = "class {}:\n"
     CLASS_INIT = "\tdef __init__(self, {}):\n{}"
     CLASS_PARAMETER = "{}={}"
@@ -26,7 +29,7 @@ class UnimplementedType:
         self.implementation = ""
         self.style = style
 
-    def unimplementedtype_from_json(self, json):
+    def serialize_json(self, json):
         """
         Serialize JSON into UnimplementedType
         :param json: dict-like JSON object
@@ -43,11 +46,13 @@ class UnimplementedType:
             dtype = type(obj)
             if dtype is dict:
                 dtype = UnimplementedType(field, style=self.style) \
-                    .unimplementedtype_from_json(obj) if obj != {} else UnknownType()
+                    .serialize_json(obj) if obj != {} else UnknownType()
             if dtype is list:
                 dtype = [UnimplementedType(field, style=self.style)
-                         .unimplementedtype_from_json(obj[0])] if len(obj) > 0 else [UnknownType()]
+                         .serialize_json(obj[0])] if len(obj) > 0 else [UnknownType()]
             self.nested_classes[field] = dtype
+
+        self.is_serialized = True
         return self
 
     @staticmethod
