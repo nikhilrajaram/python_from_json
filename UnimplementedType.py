@@ -72,6 +72,11 @@ class UnimplementedType:
 
     @staticmethod
     def capitalize(s):
+        """
+        Capitalizes a string
+        :param s: input string
+        :return: capitalized output
+        """
         strlen = len(s)
         if strlen <= 0:
             raise ValueError()
@@ -79,6 +84,11 @@ class UnimplementedType:
 
     @staticmethod
     def lowercase(s):
+        """
+        Lowercases a string
+        :param s: input string
+        :return: lowercased output
+        """
         strlen = len(s)
         if strlen <= 0:
             raise ValueError()
@@ -114,38 +124,73 @@ class UnimplementedType:
         return list(implementations.values())
 
     @staticmethod
-    def codegen_from_json_method(classname, classes):
+    def codegen_from_json_method(classname, fields):
+        """
+        Generate code for a custom class's from_json method
+        :param classname: custom class classname
+        :param fields: tree-like representation of custom class fields; dict with keys: fieldnames and values: datatypes
+        :return: implementation for custom class's from_json method
+        """
+        # start implementation with classmethod annotation, from_json declaration
         implementation = UnimplementedType.FROM_JSON_INIT
-        lower_classname = UnimplementedType.lowercase(classname)
-        list_clause = UnimplementedType.FROM_JSON_LIST.format(classname, lower_classname, lower_classname)
-        implementation += UnimplementedType.FROM_JSON_IMPL.format(classname, list_clause)
+        classname_lowercase = UnimplementedType.lowercase(classname)
+        # create list comprehension statement, e.g. [User.from_json(user) for user in json]
+        list_comprehension_stmt = UnimplementedType.FROM_JSON_LIST.format(classname, classname_lowercase,
+                                                                          classname_lowercase)
+        # append to implementation null checking and list checking for input json
+        #   if json is list, call from_json for each element of json list
+        implementation += UnimplementedType.FROM_JSON_IMPL.format(classname, list_comprehension_stmt)
 
+        # list of parameters to pass to base custom class from_json method
         parameters = []
 
-        for fieldname, dtype in classes.items():
+        for fieldname, dtype in fields.items():
             if type(dtype) is UnimplementedType:
-                upper_classname = UnimplementedType.capitalize(dtype.classname)
+                # type is custom, parameter will be of form Class.from_json(json.get('class'))
+                field_classname_uppercase = UnimplementedType.capitalize(dtype.classname)
+                fieldname_camelcased = UnimplementedType.snaked_to_camelcase(fieldname)
 
-                json_get = UnimplementedType.FROM_JSON_DICT_GET.format(UnimplementedType.snaked_to_camelcase(fieldname))
-                parameters.append(UnimplementedType.FROM_JSON_META_CALL.format(upper_classname, json_get))
+                # create json get statement, e.g. json.get('class')
+                json_get_stmt = UnimplementedType.FROM_JSON_DICT_GET.format(fieldname_camelcased)
+                # append to parameters custom class from_json call passed the json.get statement
+                parameters.append(
+                    UnimplementedType.FROM_JSON_META_CALL.format(field_classname_uppercase, json_get_stmt)
+                )
             elif type(dtype) is list:
-                if type(dtype[0]) is UnimplementedType:
-                    upper_fieldname = UnimplementedType.capitalize(fieldname)
-                    json_get = UnimplementedType.FROM_JSON_DICT_GET.format(
-                        UnimplementedType.snaked_to_camelcase(fieldname))
-                    from_json_call = UnimplementedType.FROM_JSON_META_CALL.format(upper_fieldname, '_' + fieldname)
-                    implementation += UnimplementedType.FROM_JSON_TRY_CATCH.format(
-                        fieldname, from_json_call, fieldname, json_get, fieldname)
-                    parameters.append(fieldname)
-                else:
+                if len(dtype) == 0 or type(dtype[0]) is not UnimplementedType:
+                    # list is empty/nested type is primitive
+                    # no custom class from_json call is necessary, parameter will be of form json.get('class')
                     parameters.append(UnimplementedType.FROM_JSON_DICT_GET.format(fieldname))
-            else:
+                    continue
+
+                # list is not empty and nested type is custom
+                fieldname_uppercase = UnimplementedType.capitalize(fieldname)
+                fieldname_camelcased = UnimplementedType.snaked_to_camelcase(fieldname)
+
+                # create json get statement, e.g. json.get('class')
+                json_get_stmt = UnimplementedType.FROM_JSON_DICT_GET.format(fieldname_camelcased)
+                # create custom class from_json statement, e.g. Class.from_json(json.get('class'))
+                from_json_stmt = UnimplementedType.FROM_JSON_META_CALL.format(fieldname_uppercase, '_' + fieldname)
+                # add to implementation try-catch clause for creation of a list of custom classes via list comprehension
+                implementation += UnimplementedType.FROM_JSON_TRY_CATCH.format(
+                    fieldname, from_json_stmt, fieldname, json_get_stmt, fieldname
+                )
+                parameters.append(fieldname)
+            elif type(dtype) is type:
+                # type is primitive, no custom class from_json call is necessary, use simple json.get
                 parameters.append(UnimplementedType.FROM_JSON_DICT_GET.format(fieldname))
 
+        # add to implementation from_json call for base cusotm class with parameters joined by commas
         implementation += UnimplementedType.FROM_JSON_RETURN.format(classname, ', '.join(parameters))
         return implementation
 
     def codegen(self, include_nested_classes=False, include_from_json_method=False):
+        """
+        Generate code for custom class
+        :param include_nested_classes: when True, will generate code for nested custom classes
+        :param include_from_json_method: when True, will add from_json methods to generated code
+        :return: implementation for custom class
+        """
         self.implementation = ""
         fieldnames, dtypes, defaults = [], [], []
         for fieldname, dtype in self.nested_classes.items():
