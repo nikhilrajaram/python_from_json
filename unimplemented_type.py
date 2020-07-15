@@ -1,5 +1,5 @@
-from UnknownType import UnknownType
-from error.NotSerializedError import NotSerializedError
+from unknown_type import UnknownType
+from error.not_serialized_error import NotSerializedError
 import re
 
 

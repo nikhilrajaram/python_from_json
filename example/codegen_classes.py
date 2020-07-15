@@ -1,5 +1,5 @@
 import requests
-from UnimplementedType import UnimplementedType
+from unimplemented_type import UnimplementedType
 
 if __name__ == '__main__':
     # using https://pokeapi.co/api/v2/pokemon/ditto for an example payload
