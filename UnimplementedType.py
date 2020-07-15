@@ -149,12 +149,13 @@ class UnimplementedType:
                 # type is custom, parameter will be of form Class.from_json(json.get('class'))
                 field_classname_uppercase = UnimplementedType.capitalize(dtype.classname)
                 fieldname_camelcased = UnimplementedType.snaked_to_camelcase(fieldname)
+                fieldname_classname = UnimplementedType.capitalize(fieldname_camelcased)
 
                 # create json get statement, e.g. json.get('class')
                 json_get_stmt = UnimplementedType.FROM_JSON_DICT_GET.format(fieldname_camelcased)
                 # append to parameters custom class from_json call passed the json.get statement
                 parameters.append(
-                    UnimplementedType.FROM_JSON_META_CALL.format(field_classname_uppercase, json_get_stmt)
+                    UnimplementedType.FROM_JSON_META_CALL.format(fieldname_classname, json_get_stmt)
                 )
             elif type(dtype) is list:
                 if len(dtype) == 0 or type(dtype[0]) is not UnimplementedType:
@@ -164,13 +165,14 @@ class UnimplementedType:
                     continue
 
                 # list is not empty and nested type is custom
-                fieldname_uppercase = UnimplementedType.capitalize(fieldname)
                 fieldname_camelcased = UnimplementedType.snaked_to_camelcase(fieldname)
+                fieldname_classname = UnimplementedType.capitalize(fieldname_camelcased)
 
                 # create json get statement, e.g. json.get('class')
                 json_get_stmt = UnimplementedType.FROM_JSON_DICT_GET.format(fieldname_camelcased)
                 # create custom class from_json statement, e.g. Class.from_json(json.get('class'))
-                from_json_stmt = UnimplementedType.FROM_JSON_META_CALL.format(fieldname_uppercase, '_' + fieldname)
+                from_json_stmt = UnimplementedType.FROM_JSON_META_CALL.format(
+                    fieldname_classname, '_' + fieldname)
                 # add to implementation try-catch clause for creation of a list of custom classes via list comprehension
                 implementation += UnimplementedType.FROM_JSON_TRY_CATCH.format(
                     fieldname, from_json_stmt, fieldname, json_get_stmt, fieldname
@@ -180,7 +182,7 @@ class UnimplementedType:
                 # type is primitive, no custom class from_json call is necessary, use simple json.get
                 parameters.append(UnimplementedType.FROM_JSON_DICT_GET.format(fieldname))
 
-        # add to implementation from_json call for base cusotm class with parameters joined by commas
+        # add to implementation from_json call for base custom class with parameters joined by commas
         implementation += UnimplementedType.FROM_JSON_RETURN.format(classname, ', '.join(parameters))
         return implementation
 
@@ -192,6 +194,8 @@ class UnimplementedType:
         :return: implementation for custom class
         """
         self.implementation = ""
+
+        # populate list of fieldnames, datatypes, and default constructor parameters
         fieldnames, dtypes, defaults = [], [], []
         for fieldname, dtype in self.nested_classes.items():
             if self.style == 'underscore':
@@ -202,23 +206,28 @@ class UnimplementedType:
             dtypes.append(dtype)
             defaults.append([] if type(dtype) is list else None)
 
-        self.classname = UnimplementedType.snaked_to_camelcase(self.classname[0].upper() + self.classname[1:])
+        classname_uppercase = UnimplementedType.capitalize(self.classname)
+        self.classname = UnimplementedType.snaked_to_camelcase(classname_uppercase)
+        # add class declaration to implementation
         self.implementation += UnimplementedType.CLASS_HEADER.format(self.classname)
+        # create string with parameters for constructor for custom classes
         parameters = ', '.join([UnimplementedType.CLASS_PARAMETER.format(fieldname, default)
                                 for fieldname, default in zip(fieldnames, defaults)])
+        # create string with constructor assignments
         assignments = '\n'.join([UnimplementedType.CLASS_ASSIGNMENT.format(fieldname, fieldname)
                                  for fieldname in fieldnames])
+        # add constructor to implementation
         self.implementation += UnimplementedType.CLASS_INIT.format(parameters, assignments)
 
         if include_from_json_method:
             self.implementation += '\n\n'
+            # add from_json method to implementation
             self.implementation += UnimplementedType.codegen_from_json_method(self.classname, self.nested_classes)
 
         self.implementation += '\n\n\n'
 
-        if not include_nested_classes:
-            return self.implementation
-
-        return self.implementation + \
-            ''.join([impl for impl in UnimplementedType.codegen_nested_classes(
+        if include_nested_classes:
+            self.implementation += ''.join([impl for impl in UnimplementedType.codegen_nested_classes(
                 self.nested_classes, include_from_json_method=include_from_json_method)])
+
+        return self.implementation
